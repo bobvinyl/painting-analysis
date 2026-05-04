@@ -78,14 +78,21 @@ class ImageAnalyzer:
 
         average_color = tuple(map(int, np.mean(pixels, axis=0)))
         median_color = tuple(map(int, np.median(pixels, axis=0)))
+        warmth_score = self.warmth_score(average_color)
+        dominant_distances = [
+            float(self.color_distance(average_color, dominant_color))
+            for dominant_color in dominant_colors
+        ]
 
         histogram = self._color_histogram(self.image_rgb)
 
         return {
             "dominant_colors": dominant_colors,
             "dominant_percentages": percentages,
+            "dominant_distances": dominant_distances,
             "average_color": average_color,
             "median_color": median_color,
+            "warmth_score": warmth_score,
             "histogram": histogram,
         }
 
@@ -96,6 +103,31 @@ class ImageAnalyzer:
             "blue": cv2.calcHist([image_rgb], [2], None, [bins], [0, 256]).flatten(),
         }
         return histogram
+
+    @staticmethod
+    def rgb_to_lab(rgb: Tuple[int, int, int]) -> np.ndarray:
+        rgb_arr = np.uint8([[[rgb[0], rgb[1], rgb[2]]]])
+        lab = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2LAB)
+        return lab[0, 0]
+
+    def color_distance(
+        self,
+        rgb_a: Tuple[int, int, int],
+        rgb_b: Tuple[int, int, int],
+        method: str = "lab",
+    ) -> float:
+        if method == "lab":
+            lab_a = self.rgb_to_lab(rgb_a).astype(np.float32)
+            lab_b = self.rgb_to_lab(rgb_b).astype(np.float32)
+            return float(np.linalg.norm(lab_a - lab_b))
+        if method == "rgb":
+            diff = np.array(rgb_a, dtype=np.float32) - np.array(rgb_b, dtype=np.float32)
+            return float(np.linalg.norm(diff))
+        raise ValueError(f"Unsupported distance method: {method}")
+
+    @staticmethod
+    def warmth_score(rgb: Tuple[int, int, int]) -> int:
+        return int(rgb[0] - rgb[2])
 
     @staticmethod
     def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:

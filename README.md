@@ -32,8 +32,13 @@ Outputs:
 
 - `dominant_colors`: the main RGB colors discovered in the image.
 - `dominant_percentages`: the relative fraction of pixels assigned to each dominant color.
+- `dominant_distances`: the perceptual distance of each dominant color from the average color, computed in Lab color space. In the Streamlit UI, this distance is color-coded on each dominant color entry:
+  - green for 0–85
+  - yellow/orange for 86–170
+  - red for greater than 170
 - `average_color`: the per-channel mean RGB value across all pixels.
 - `median_color`: the per-channel median RGB value across all pixels.
+- `warmth_score`: a signed score equal to average red minus average blue, where positive values indicate a warmer tone and negative values indicate a cooler tone.
 - `histogram`: a simple distribution of red, green, and blue channel intensities.
 
 #### `rgb_to_hex(rgb)`
@@ -73,6 +78,9 @@ Each bin counts how many pixels have channel values in that range.
 - If the blue histogram is concentrated in the low bins, the image is darker or has little blue intensity.
 - If all three color histograms are strong at high bins, the image is bright in all channels.
 
+The app also computes a perceptual distance between each dominant color and the image average color.
+This distance is measured in Lab color space, which reflects how humans perceive color differences more accurately than raw RGB distances.
+
 In the Streamlit UI, each channel is drawn in its own color:
 
 - red channel bars are colored red
@@ -109,6 +117,8 @@ The Streamlit app provides an interactive browser UI for comparing two images si
 - Slider to choose the number of dominant color clusters.
 - Displays each loaded image in its own panel.
 - Shows average and median colors with swatches, RGB, and HEX values.
+- Shows a warmth score for each image, where positive values indicate a warmer red bias and negative values indicate a cooler blue bias.
+- Displays the perceptual distance of each dominant color from the average color.
 - Renders dominant color swatches and percentage shares for each image.
 - Shows a colored histogram for the red, green, and blue channels.
 

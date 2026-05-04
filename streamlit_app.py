@@ -11,15 +11,30 @@ from typing import Optional
 from image_analysis import ImageAnalyzer
 
 
-def format_color_box(rgb: tuple[int, int, int], percentage: float) -> str:
+def format_color_box(
+    rgb: tuple[int, int, int], percentage: float, distance: Optional[float] = None
+) -> str:
     hex_color = ImageAnalyzer.rgb_to_hex(rgb)
+    distance_line = ""
+    if distance is not None:
+        if distance <= 85:
+            color = "green"
+        elif distance <= 170:
+            color = "orange"
+        else:
+            color = "red"
+        distance_line = (
+            f"Distance from average: "
+            f"<span style=\"color:{color}; font-weight:bold;\">{distance:.1f}</span>"
+        )
     return (
         f"<div style=\"display:flex;align-items:center;margin-bottom:10px;\">"
         f"<div style=\"width:96px;height:64px;border:1px solid #ddd;margin-right:12px;background:{hex_color};\"></div>"
         f"<div>"
         f"<strong>{hex_color}</strong><br>"
         f"RGB: {rgb}<br>"
-        f"Share: {percentage:.2%}"
+        f"Share: {percentage:.2%}<br>"
+        f"{distance_line}"
         f"</div>"
         f"</div>"
     )
@@ -72,11 +87,14 @@ def render_analysis_panel(panel, image_uri: str, image: Optional[np.ndarray], re
     panel.subheader("Color Analysis Results")
     panel.markdown(format_color_summary("Average color", result["average_color"]), unsafe_allow_html=True)
     panel.markdown(format_color_summary("Median color", result["median_color"]), unsafe_allow_html=True)
+    panel.markdown(f"**Warmth score:** {result['warmth_score']}  \nPositive values indicate a warmer red bias; negative values indicate a cooler blue bias.")
 
     panel.markdown("---")
     panel.subheader("Dominant Colors")
-    for rgb, pct in zip(result["dominant_colors"], result["dominant_percentages"]):
-        panel.markdown(format_color_box(rgb, pct), unsafe_allow_html=True)
+    for rgb, pct, dist in zip(
+        result["dominant_colors"], result["dominant_percentages"], result["dominant_distances"]
+    ):
+        panel.markdown(format_color_box(rgb, pct, dist), unsafe_allow_html=True)
 
     panel.markdown("---")
     panel.subheader("Color Histogram")
