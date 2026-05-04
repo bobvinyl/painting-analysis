@@ -79,6 +79,7 @@ class ImageAnalyzer:
         average_color = tuple(map(int, np.mean(pixels, axis=0)))
         median_color = tuple(map(int, np.median(pixels, axis=0)))
         warmth_score = self.warmth_score(average_color)
+        brightness_score = self.brightness_score(average_color)
         dominant_distances = [
             float(self.color_distance(average_color, dominant_color))
             for dominant_color in dominant_colors
@@ -93,6 +94,7 @@ class ImageAnalyzer:
             "average_color": average_color,
             "median_color": median_color,
             "warmth_score": warmth_score,
+            "brightness_score": brightness_score,
             "histogram": histogram,
         }
 
@@ -128,6 +130,10 @@ class ImageAnalyzer:
     @staticmethod
     def warmth_score(rgb: Tuple[int, int, int]) -> int:
         return int(rgb[0] - rgb[2])
+
+    @staticmethod
+    def brightness_score(rgb: Tuple[int, int, int]) -> float:
+        return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
 
     @staticmethod
     def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:

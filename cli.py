@@ -19,6 +19,7 @@ def main() -> None:
 
     print("Average color (RGB):", result["average_color"])
     print("Median color (RGB):", result["median_color"])
+    print(f"Brightness score: {result['brightness_score']:.2f}")
     print("Dominant colors (RGB):")
     for color, pct in zip(result["dominant_colors"], result["dominant_percentages"]):
         print(f"  {color} ({pct:.2%}) => {ImageAnalyzer.rgb_to_hex(color)}")

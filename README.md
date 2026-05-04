@@ -39,6 +39,7 @@ Outputs:
 - `average_color`: the per-channel mean RGB value across all pixels.
 - `median_color`: the per-channel median RGB value across all pixels.
 - `warmth_score`: a signed score equal to average red minus average blue, where positive values indicate a warmer tone and negative values indicate a cooler tone.
+- `brightness_score`: the perceived luminance of the average color, calculated using the standard formula 0.299*R + 0.587*G + 0.114*B. Values range from 0 (black) to 255 (white), indicating overall image brightness.
 - `histogram`: a simple distribution of red, green, and blue channel intensities.
 
 #### `rgb_to_hex(rgb)`

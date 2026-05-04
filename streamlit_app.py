@@ -88,6 +88,7 @@ def render_analysis_panel(panel, image_uri: str, image: Optional[np.ndarray], re
     panel.markdown(format_color_summary("Average color", result["average_color"]), unsafe_allow_html=True)
     panel.markdown(format_color_summary("Median color", result["median_color"]), unsafe_allow_html=True)
     panel.markdown(f"**Warmth score:** {result['warmth_score']}  \nPositive values indicate a warmer red bias; negative values indicate a cooler blue bias.")
+    panel.markdown(f"**Brightness score:** {result['brightness_score']:.2f}  \nPerceived luminance of the average color (0-255 scale). Higher values indicate brighter images.")
 
     panel.markdown("---")
     panel.subheader("Dominant Colors")
