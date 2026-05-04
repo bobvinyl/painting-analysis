@@ -69,16 +69,17 @@ python cli.py https://example.com/image.png --clusters 6
 
 ## Streamlit UI (`streamlit_app.py`)
 
-The Streamlit app provides an interactive browser UI.
+The Streamlit app provides an interactive browser UI for comparing two images side by side.
 
 ### Features
 
-- Input field for image URI or local path.
+- Two input fields for image URIs or local paths.
+- One analysis button to compare both images in parallel.
 - Slider to choose the number of dominant color clusters.
-- Displays the loaded image.
-- Shows average and median colors.
-- Renders dominant color swatches and percentage shares.
-- Shows a bar chart for the red, green, and blue histograms.
+- Displays each loaded image in its own panel.
+- Shows average and median colors with swatches, RGB, and HEX values.
+- Renders dominant color swatches and percentage shares for each image.
+- Shows a colored histogram for the red, green, and blue channels.
 
 ### Run the app
 
