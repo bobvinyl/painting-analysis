@@ -1,3 +1,7 @@
+import base64
+import io
+
+import cv2
 import streamlit as st
 import altair as alt
 import pandas as pd
@@ -35,6 +39,15 @@ def format_color_summary(title: str, rgb: tuple[int, int, int]) -> str:
     )
 
 
+def image_to_base64(image: np.ndarray) -> str:
+    # OpenCV expects BGR for encoding, but our image is stored in RGB.
+    image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    success, buffer = cv2.imencode('.png', image_bgr)
+    if not success:
+        raise ValueError('Unable to encode image to PNG')
+    return base64.b64encode(buffer).decode('utf-8')
+
+
 def render_analysis_panel(panel, image_uri: str, image: Optional[np.ndarray], result: Optional[dict]) -> None:
     if not image_uri:
         panel.info("Enter an image URI or local path to analyze.")
@@ -45,7 +58,16 @@ def render_analysis_panel(panel, image_uri: str, image: Optional[np.ndarray], re
         return
 
     panel.subheader("Image Preview")
-    panel.image(image, caption=image_uri, width=320)
+    image_base64 = image_to_base64(image)
+    image_html = (
+        f"<div style=\"height:320px; display:flex; align-items:center; justify-content:center; "
+        f"overflow:hidden; border:1px solid #ddd; background:#fafafa; margin-bottom:8px;\">"
+        f"<img src=\"data:image/png;base64,{image_base64}\" "
+        f"style=\"max-height:100%; max-width:100%; object-fit:contain;\" />"
+        f"</div>"
+        f"<div style=\"font-size:0.9rem; color:#555; margin-bottom:16px;\">{image_uri}</div>"
+    )
+    panel.markdown(image_html, unsafe_allow_html=True)
 
     panel.subheader("Color Analysis Results")
     panel.markdown(format_color_summary("Average color", result["average_color"]), unsafe_allow_html=True)
@@ -60,24 +82,39 @@ def render_analysis_panel(panel, image_uri: str, image: Optional[np.ndarray], re
     panel.subheader("Color Histogram")
     histogram = result["histogram"]
     histogram_data = []
+    num_bins = len(histogram["red"])
+    bin_width = 256 // num_bins
+    range_labels = []
+    for idx in range(num_bins):
+        start = idx * bin_width
+        end = (idx + 1) * bin_width - 1
+        if idx == num_bins - 1:
+            end = 255
+        range_labels.append(f"{start}-{end}")
+
     for channel in ("red", "green", "blue"):
         for idx, value in enumerate(histogram[channel].tolist()):
             histogram_data.append({
                 "channel": channel,
-                "bin": idx,
+                "range": range_labels[idx],
+                "range_order": idx,
                 "count": value,
             })
 
     histogram_df = pd.DataFrame(histogram_data)
     chart = alt.Chart(histogram_df).mark_bar().encode(
-        x=alt.X("bin:O", title="Intensity bin"),
+        x=alt.X(
+            "range:O",
+            title="Intensity range",
+            sort=alt.SortArray(range_labels),
+        ),
         y=alt.Y("count:Q", title="Pixel count"),
         color=alt.Color(
             "channel:N",
             scale=alt.Scale(domain=["red", "green", "blue"], range=["red", "green", "blue"]),
             title="Channel",
         ),
-        tooltip=["channel", "bin", "count"],
+        tooltip=["channel", "range", "count"],
     ).properties(width=320)
 
     panel.altair_chart(chart, use_container_width=True)

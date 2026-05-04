@@ -42,13 +42,44 @@ Converts an RGB tuple to a hexadecimal color string (for example `#ffcc00`).
 
 ### Histogram explanation
 
-The histogram represents the distribution of pixel intensity values for each color channel:
+The histogram represents how the pixel brightness values are distributed for each color channel.
 
-- `red`: counts of red values across the image.
-- `green`: counts of green values.
-- `blue`: counts of blue values.
+#### What is a channel?
 
-Each channel histogram is computed using a small number of bins (default 8), so it summarizes whether the image is darker or brighter in each channel and where the channel values cluster.
+Images are stored in RGB format, where each pixel contains three separate channels:
+
+- `red`: the amount of red light in the pixel.
+- `green`: the amount of green light.
+- `blue`: the amount of blue light.
+
+These channels combine to produce the final visible color of each pixel.
+
+#### How are the values separated into bins?
+
+Each channel value ranges from 0 to 255. The histogram groups these values into a fixed number of ranges called bins.
+
+For example, with 8 bins:
+
+- bin 0 covers values near 0–31
+- bin 1 covers values near 32–63
+- ...
+- bin 7 covers values near 224–255
+
+Each bin counts how many pixels have channel values in that range.
+
+#### What the histogram tells you
+
+- A tall red bin means many pixels have red values in that range.
+- If the blue histogram is concentrated in the low bins, the image is darker or has little blue intensity.
+- If all three color histograms are strong at high bins, the image is bright in all channels.
+
+In the Streamlit UI, each channel is drawn in its own color:
+
+- red channel bars are colored red
+- green channel bars are colored green
+- blue channel bars are colored blue
+
+This makes it easier to compare how the red, green, and blue intensities are distributed across the image.
 
 ## CLI (`cli.py`)
 
