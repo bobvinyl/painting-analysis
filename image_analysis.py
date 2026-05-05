@@ -98,7 +98,7 @@ class ImageAnalyzer:
             "histogram": histogram,
         }
 
-    def _color_histogram(self, image_rgb: np.ndarray, bins: int = 8) -> Dict[str, np.ndarray]:
+    def _color_histogram(self, image_rgb: np.ndarray, bins: int = 16) -> Dict[str, np.ndarray]:
         histogram = {
             "red": cv2.calcHist([image_rgb], [0], None, [bins], [0, 256]).flatten(),
             "green": cv2.calcHist([image_rgb], [1], None, [bins], [0, 256]).flatten(),
@@ -138,3 +138,67 @@ class ImageAnalyzer:
     @staticmethod
     def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
         return "#%02x%02x%02x" % rgb
+
+    def analyze_style(self) -> Dict[str, float]:
+        """Analyze whether the painting style is more angular or flowing based on straight lines and edge orientation."""
+        if self.image_rgb is None:
+            self.load_image()
+
+        gray = cv2.cvtColor(self.image_rgb, cv2.COLOR_RGB2GRAY)
+
+        # Detect edges using Canny
+        edges = cv2.Canny(gray, 50, 150)
+
+        # Detect straight lines using Probabilistic Hough Transform
+        lines = cv2.HoughLinesP(
+            edges,
+            rho=1,
+            theta=np.pi / 180,
+            threshold=30,
+            minLineLength=30,
+            maxLineGap=10,
+        )
+
+        # Create a mask for detected lines and measure their length.
+        line_mask = np.zeros_like(edges)
+        total_line_length = 0.0
+        if lines is not None:
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                cv2.line(line_mask, (x1, y1), (x2, y2), 255, 1)
+                total_line_length += np.hypot(x2 - x1, y2 - y1)
+
+        covered_edge_pixels = np.sum((edges > 0) & (line_mask > 0))
+        total_edge_pixels = np.sum(edges > 0)
+        line_coverage = float(covered_edge_pixels) / total_edge_pixels if total_edge_pixels > 0 else 0.0
+
+        # Compute orientation entropy of the edge pixels.
+        entropy_norm = 0.0
+        if total_edge_pixels > 0:
+            sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+            sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+            orientation = np.arctan2(sobely, sobelx) * 180 / np.pi
+            orientation = (orientation + 180) % 180
+            orientations = orientation[edges > 0]
+
+            hist, _ = np.histogram(orientations, bins=36, range=(0, 180))
+            hist = hist.astype(float)
+            hist /= hist.sum() + 1e-10
+
+            entropy = -np.sum(hist * np.log(hist + 1e-10))
+            entropy_norm = float(entropy / np.log(36))
+
+        # Scale angular contribution by overall line density and orientation concentration.
+        diag = np.hypot(*gray.shape[::-1])
+        line_density = np.clip(total_line_length / max(1.0, 2.5 * diag), 0.0, 1.0)
+        orientation_concentration = 1.0 - entropy_norm
+
+        angular_score = (
+            0.15 * line_density
+            + 0.70 * line_coverage
+            + 0.15 * orientation_concentration
+        )
+        angular_score = float(np.clip(angular_score, 0.0, 1.0))
+        flowing_score = 1.0 - angular_score
+
+        return {"angular_score": angular_score, "flowing_score": flowing_score}

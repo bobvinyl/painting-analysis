@@ -138,6 +138,11 @@ def render_analysis_panel(panel, image_uri: str, image: Optional[np.ndarray], re
 
     panel.altair_chart(chart, use_container_width=True)
 
+    panel.markdown("---")
+    panel.subheader("Style Analysis")
+    panel.markdown(f"**Angular score:** {result['angular_score']:.2f}  \nHigher values indicate more angular features (straight lines, geometric shapes).")
+    panel.markdown(f"**Flowing score:** {result['flowing_score']:.2f}  \nHigher values indicate more flowing features (curves, organic shapes).")
+
 
 def main() -> None:
     st.set_page_config(page_title="Painting Analysis", layout="wide")
@@ -162,6 +167,8 @@ def main() -> None:
                 analyzer = ImageAnalyzer(image_uri)
                 image = analyzer.load_image()
                 result = analyzer.analyze_colors(num_clusters=clusters)
+                style_result = analyzer.analyze_style()
+                result.update(style_result)
                 results.append((image_uri, image, result))
             except Exception as exc:
                 results.append((image_uri, None, {"error": str(exc)}))

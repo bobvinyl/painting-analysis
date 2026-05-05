@@ -42,6 +42,23 @@ Outputs:
 - `brightness_score`: the perceived luminance of the average color, calculated using the standard formula 0.299*R + 0.587*G + 0.114*B. Values range from 0 (black) to 255 (white), indicating overall image brightness.
 - `histogram`: a simple distribution of red, green, and blue channel intensities.
 
+#### `analyze_style()`
+
+Analyzes whether the painting style exhibits more angular or flowing characteristics.
+
+Uses edge detection (Canny) and straight-line detection (Hough transform) to evaluate the prevalence of straight lines and geometric edges versus curves and organic shapes.
+
+Outputs:
+
+- `angular_score`: ranges from 0.0 to 1.0, where higher values indicate more angular features (sharp lines, geometric shapes, structured patterns).
+- `flowing_score`: ranges from 0.0 to 1.0, where higher values indicate more flowing features (curves, organic shapes, smooth transitions). Note that `flowing_score = 1.0 - angular_score`.
+
+The scoring combines:
+- **Line coverage** (70%): the fraction of detected edge pixels that align with straight lines.
+- **Line density** (15%): the total length of detected lines relative to image dimensions.
+- **Orientation concentration** (15%): how consistently edge orientations are distributed (lower diversity = more angular).
+
+
 #### `rgb_to_hex(rgb)`
 
 Converts an RGB tuple to a hexadecimal color string (for example `#ffcc00`).
@@ -106,6 +123,7 @@ python cli.py https://example.com/image.png --clusters 6
 - Average color in RGB and HEX
 - Median color in RGB and HEX
 - Dominant colors with their percentage share
+- Angular and flowing style scores
 
 ## Streamlit UI (`streamlit_app.py`)
 
@@ -122,6 +140,7 @@ The Streamlit app provides an interactive browser UI for comparing two images si
 - Displays the perceptual distance of each dominant color from the average color.
 - Renders dominant color swatches and percentage shares for each image.
 - Shows a colored histogram for the red, green, and blue channels.
+- Displays angular and flowing style scores to characterize whether the painting favors geometric/angular features or organic/flowing shapes.
 
 ### Run the app
 

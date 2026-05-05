@@ -16,6 +16,7 @@ def main() -> None:
 
     analyzer = ImageAnalyzer(args.image_uri)
     result = analyzer.analyze_colors(num_clusters=args.clusters)
+    style_result = analyzer.analyze_style()
 
     print("Average color (RGB):", result["average_color"])
     print("Median color (RGB):", result["median_color"])
@@ -23,6 +24,9 @@ def main() -> None:
     print("Dominant colors (RGB):")
     for color, pct in zip(result["dominant_colors"], result["dominant_percentages"]):
         print(f"  {color} ({pct:.2%}) => {ImageAnalyzer.rgb_to_hex(color)}")
+
+    print(f"Angular score: {style_result['angular_score']:.2f} (higher = more angular)")
+    print(f"Flowing score: {style_result['flowing_score']:.2f} (higher = more flowing)")
 
 
 if __name__ == "__main__":
