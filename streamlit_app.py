@@ -63,6 +63,83 @@ def image_to_base64(image: np.ndarray) -> str:
     return base64.b64encode(buffer).decode('utf-8')
 
 
+def _treemap_rectangles(
+    values: list[float],
+    x: float = 0.0,
+    y: float = 0.0,
+    width: float = 100.0,
+    height: float = 100.0,
+) -> list[tuple[float, float, float, float]]:
+    if not values:
+        return []
+
+    if len(values) == 1:
+        return [(x, y, width, height)]
+
+    total = sum(values)
+    if total <= 0:
+        equal = [1.0] * len(values)
+        return _treemap_rectangles(equal, x, y, width, height)
+
+    half = total / 2.0
+    running = 0.0
+    split_idx = 1
+    best_diff = float("inf")
+    for idx in range(1, len(values)):
+        running += values[idx - 1]
+        diff = abs(half - running)
+        if diff < best_diff:
+            best_diff = diff
+            split_idx = idx
+
+    first_values = values[:split_idx]
+    second_values = values[split_idx:]
+    first_total = sum(first_values)
+    ratio = first_total / total
+
+    if width >= height:
+        first_width = width * ratio
+        return _treemap_rectangles(first_values, x, y, first_width, height) + _treemap_rectangles(
+            second_values,
+            x + first_width,
+            y,
+            width - first_width,
+            height,
+        )
+
+    first_height = height * ratio
+    return _treemap_rectangles(first_values, x, y, width, first_height) + _treemap_rectangles(
+        second_values,
+        x,
+        y + first_height,
+        width,
+        height - first_height,
+    )
+
+
+def format_dominant_treemap(colors: list[tuple[int, int, int]], percentages: list[float]) -> str:
+    rects = _treemap_rectangles(percentages)
+    pieces = []
+    for (x, y, w, h), rgb, pct in zip(rects, colors, percentages):
+        hex_color = ImageAnalyzer.rgb_to_hex(rgb)
+        label = f"{pct:.1%}" if (w * h) >= 120 else ""
+        text_color = "#000" if (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) > 150 else "#fff"
+        pieces.append(
+            f'<div style="position:absolute;left:{x:.3f}%;top:{y:.3f}%;'
+            f'width:{w:.3f}%;height:{h:.3f}%;background:{hex_color};'
+            f'border:1px solid rgba(255,255,255,0.65);box-sizing:border-box;'
+            f'display:flex;align-items:flex-end;justify-content:flex-start;padding:6px;'
+            f'font-size:0.78rem;font-weight:600;color:{text_color};overflow:hidden;">{label}</div>'
+        )
+
+    return (
+        '<div style="width:100%;height:280px;position:relative;border:1px solid #ddd;'
+        'background:#f3f3f3;border-radius:4px;overflow:hidden;">'
+        + "".join(pieces)
+        + "</div>"
+    )
+
+
 def render_analysis_panel(panel, image_uri: str, image: Optional[np.ndarray], result: Optional[dict]) -> None:
     if not image_uri:
         panel.info("Enter an image URI or local path to analyze.")
@@ -92,10 +169,17 @@ def render_analysis_panel(panel, image_uri: str, image: Optional[np.ndarray], re
 
     panel.markdown("---")
     panel.subheader("Dominant Colors")
+    dominant_list_col, dominant_treemap_col = panel.columns([1.25, 1])
     for rgb, pct, dist in zip(
         result["dominant_colors"], result["dominant_percentages"], result["dominant_distances"]
     ):
-        panel.markdown(format_color_box(rgb, pct, dist), unsafe_allow_html=True)
+        dominant_list_col.markdown(format_color_box(rgb, pct, dist), unsafe_allow_html=True)
+
+    dominant_treemap_col.markdown("**Treemap**")
+    dominant_treemap_col.markdown(
+        format_dominant_treemap(result["dominant_colors"], result["dominant_percentages"]),
+        unsafe_allow_html=True,
+    )
 
     panel.markdown("---")
     panel.subheader("Color Histogram")
