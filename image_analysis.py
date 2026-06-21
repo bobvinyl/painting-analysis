@@ -6,8 +6,12 @@ import cv2
 import numpy as np
 
 try:
-    from urllib.request import urlopen
+    from urllib.error import HTTPError, URLError
+    from urllib.request import Request, urlopen
 except ImportError:
+    HTTPError = None
+    URLError = None
+    Request = None
     urlopen = None
 
 
@@ -40,11 +44,29 @@ class ImageAnalyzer:
         return image
 
     def _load_image_from_url(self, url: str) -> Optional[np.ndarray]:
-        if urlopen is None:
+        if urlopen is None or Request is None:
             raise RuntimeError("urllib is not available to fetch remote images")
 
-        with urlopen(url) as response:
-            data = response.read()
+        request = Request(
+            url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/126.0.0.0 Safari/537.36"
+                ),
+                "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+                "Referer": "https://art.thewalters.org/",
+            },
+        )
+
+        try:
+            with urlopen(request, timeout=20) as response:
+                data = response.read()
+        except HTTPError as exc:
+            raise ValueError(f"Unable to fetch image from URL ({exc.code}): {url}") from exc
+        except URLError as exc:
+            raise ValueError(f"Unable to fetch image from URL: {url}") from exc
 
         image_data = np.frombuffer(data, np.uint8)
         image = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
